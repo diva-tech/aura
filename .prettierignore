@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+.venv/
+
+# Build outputs
+dist/
+dist-electron/
+build/
+out/
+
+# Cache directories
+.cache/
+.eslintcache
+.ruff_cache
+.mypy_cache
+
+# Logs
+logs/
+*.log
+*.log*
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Docker
+docker-compose.override.yml
+.dockerignore

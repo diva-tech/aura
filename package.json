@@ -1,0 +1,47 @@
+{
+  "name": "aura",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "prepare": "husky",
+    "lint:commits": "commitlint --from=HEAD~1 --to=HEAD",
+    "lint": "pnpm lint:desktop && pnpm lint:backend",
+    "lint:backend": ". .venv/bin/activate && ruff check apps/backend/src apps/backend/tests && mypy apps/backend/src",
+    "dev:desktop": "pnpm --filter @aura/desktop dev",
+    "build:desktop": "pnpm --filter @aura/desktop build",
+    "lint:desktop": "pnpm --filter @aura/desktop lint && pnpm --filter @aura/shared lint",
+    "format:backend": ". .venv/bin/activate && black apps/backend/src apps/backend/tests && isort apps/backend/src apps/backend/tests",
+    "format:desktop": "prettier --write .",
+    "test:backend": ". .venv/bin/activate && pytest apps/backend/tests",
+    "test:desktop": "pnpm --filter @aura/desktop test",
+    "test:e2e": "pnpm --filter @aura/desktop test:e2e",
+    "precommit:python": ". .venv/bin/activate && pre-commit run --all-files",
+    "verify": "pnpm lint && pnpm test:backend && pnpm test:desktop && pnpm test:e2e && pnpm build:desktop",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.17.0",
+    "@commitlint/cli": "^19.8.0",
+    "@commitlint/config-conventional": "^19.8.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-react-refresh": "^0.4.16",
+    "globals": "^15.13.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.4.3",
+    "prettier": "^3.4.2",
+    "typescript-eslint": "^8.18.1"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx,json,md,yml,yaml}": "prettier --write",
+    "apps/desktop/**/*.{ts,tsx}": "eslint --fix",
+    "packages/shared/**/*.{ts,tsx}": "eslint --fix",
+    "apps/backend/**/*.{py}": [
+      "sh -c '. .venv/bin/activate && black \"$@\"' --",
+      "sh -c '. .venv/bin/activate && isort \"$@\"' --",
+      "sh -c '. .venv/bin/activate && ruff check --fix \"$@\"' --"
+    ]
+  }
+}
