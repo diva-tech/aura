@@ -9,6 +9,7 @@ from aura_backend.api.exception_handlers import register_exception_handlers
 from aura_backend.api.router import api_router
 from aura_backend.config.logging import configure_logging, get_logger
 from aura_backend.config.settings import get_settings
+from aura_backend.core.bootstrap import Runtime
 from aura_backend.core.clients import close_infrastructure_clients, create_infrastructure_clients
 from aura_backend.core.container import ApplicationContainer
 from aura_backend.core.openapi import configure_openapi
@@ -19,14 +20,19 @@ from aura_backend.middleware.rate_limit import RateLimitMiddleware
 from aura_backend.middleware.request_id import RequestIdMiddleware
 from aura_backend.middleware.request_logging import RequestLoggingMiddleware
 from aura_backend.middleware.security_headers import SecurityHeadersMiddleware
+from aura_backend.plugins.logging_plugin import LoggingPlugin
+from aura_backend.plugins.storage_plugin import StoragePlugin
+from aura_backend.agents.editor_agent import EditorAgent
+from aura_backend.agents.seo_agent import SEOAgent
 
-APPLICATION_VERSION = "0.1.0"
+APPLICATION_VERSION = "0.2.0"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings)
+    logger = get_logger(__name__)
     infrastructure = await create_infrastructure_clients(settings)
     runtime_state = RuntimeState.create(version=APPLICATION_VERSION)
     app.state.container = ApplicationContainer(
@@ -34,9 +40,21 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         infrastructure=infrastructure,
         runtime_state=runtime_state,
     )
-    logger = get_logger(__name__)
+
+    # Initialize AURA Runtime
+    aura_runtime = Runtime(version=APPLICATION_VERSION)
+    aura_runtime.plugins.register(LoggingPlugin())
+    aura_runtime.plugins.register(StoragePlugin())
+    aura_runtime.agents.register_instance(EditorAgent())
+    aura_runtime.agents.register_instance(SEOAgent())
+
     logger.info("application_starting", extra={"environment": settings.environment})
+    await aura_runtime.startup()
+    app.state.aura_runtime = aura_runtime
+
     yield
+
+    await aura_runtime.shutdown()
     await close_infrastructure_clients(infrastructure)
     logger.info("application_stopping")
 

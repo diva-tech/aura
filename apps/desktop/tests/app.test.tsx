@@ -28,6 +28,6 @@ describe("App", () => {
 
   it("renders the desktop dashboard shell", () => {
     render(<App />);
-    expect(screen.getByText("Autonomous Unified Reel Assistant")).toBeInTheDocument();
+    expect(screen.getByText("Autonomous Studio")).toBeInTheDocument();
   });
 });
