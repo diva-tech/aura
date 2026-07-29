@@ -2,7 +2,44 @@
 
 Phase 1: Domain models, scoring framework, LLM provider abstractions.
 Phase 2: Semantic intelligence engines as M6 agents for M8 orchestration.
+Phase 3: Creator intelligence layer with deterministic + optional LLM enhancement.
 """
+
+# Creator Intelligence (Phase 3)
+from .creator import (
+    ContentAsset,
+    ContentBundle,
+    ContentFormat,
+    ContentOpportunity,
+    CreatorGoal,
+    CreatorStrategy,
+    DistributionStrategy,
+    EngagementMetrics,
+    OpportunityType,
+    PlatformType,
+)
+
+# Creator Agents (Phase 3)
+from .creator_agents import (
+    BundleImplementationGuideEnhancer,
+    ContentBundleAgent,
+    ContentOpportunityAgent,
+    CreatorAgentRegistry,
+    CreatorIntelligenceAgent,
+    CreatorStrategyAgent,
+    LLMEnhancementAgent,
+    OpportunityTitleEnhancer,
+    StrategyNarrativeEnhancer,
+)
+
+# Creator Engines (Phase 3)
+from .creator_engines import (
+    ContentBundleEngine,
+    ContentOpportunityEngine,
+    CreatorEngineRegistry,
+    CreatorStrategyEngine,
+    create_default_creator_registry,
+)
 
 # Evidence and Scoring Cards (Phase 2)
 from .agents import (
@@ -97,6 +134,33 @@ __all__ = [
     "RecommendationAnalysisAgent",
     "StoryAnalysisAgent",
     "TopicAnalysisAgent",
+    # Creator Agents (Phase 3)
+    "BundleImplementationGuideEnhancer",
+    "ContentBundleAgent",
+    "ContentOpportunityAgent",
+    "CreatorAgentRegistry",
+    "CreatorIntelligenceAgent",
+    "CreatorStrategyAgent",
+    "LLMEnhancementAgent",
+    "OpportunityTitleEnhancer",
+    "StrategyNarrativeEnhancer",
+    # Creator Models (Phase 3)
+    "ContentAsset",
+    "ContentBundle",
+    "ContentFormat",
+    "ContentOpportunity",
+    "CreatorGoal",
+    "CreatorStrategy",
+    "DistributionStrategy",
+    "EngagementMetrics",
+    "OpportunityType",
+    "PlatformType",
+    # Creator Engines (Phase 3)
+    "ContentBundleEngine",
+    "ContentOpportunityEngine",
+    "CreatorEngineRegistry",
+    "CreatorStrategyEngine",
+    "create_default_creator_registry",
     # Engines (Phase 2)
     "ChapterEngine",
     "EngineRegistry",
