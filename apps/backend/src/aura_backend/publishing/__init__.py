@@ -5,6 +5,9 @@ Phase 1: Publishing Foundation
 
 Phase 2: Publishing Providers
 - Context, capability models, abstract provider interface, reference implementations
+
+Phase 3: Publishing Orchestration
+- Stages, failures, events, planner, M6 agents, M8 integration
 """
 
 # Provider Backends (Phase 2)
@@ -24,6 +27,17 @@ from .context import (
     PublishingContext,
 )
 
+# Events (Phase 3)
+from .events import (
+    PublishingCompleted,
+    PublishingEvent,
+    PublishingMetricsEvent,
+    PublishingStarted,
+    StageCompleted,
+    StageFailed,
+    StageStarted,
+)
+
 # Manifest
 from .manifest import PublishingManifest
 
@@ -40,6 +54,22 @@ from .models import (
     PublishingStatus,
     PublishingTask,
     ThumbnailAsset,
+)
+
+# Orchestration (Phase 3)
+from .orchestration import (
+    AuthenticationAgent,
+    CaptionsAgent,
+    MetadataAgent,
+    PrivacyAgent,
+    PublishAgent,
+    PublishingAgent,
+    PublishingAgentRegistry,
+    PublishingPlanner,
+    ScheduleAgent,
+    ThumbnailAgent,
+    UploadAgent,
+    create_default_publishing_agent_registry,
 )
 
 # Profiles
@@ -95,7 +125,41 @@ from .schedule import (
     WeekDay,
 )
 
+# Stages & Failures (Phase 3)
+from .stages import (
+    PublishingFailure,
+    PublishingStageStatus,
+    PublishStage,
+    StageType,
+)
+
 __all__ = [
+    # Stages & Failures (Phase 3)
+    "PublishingFailure",
+    "PublishStage",
+    "PublishingStageStatus",
+    "StageType",
+    # Events (Phase 3)
+    "PublishingCompleted",
+    "PublishingEvent",
+    "PublishingMetricsEvent",
+    "PublishingStarted",
+    "StageCompleted",
+    "StageFailed",
+    "StageStarted",
+    # Orchestration (Phase 3)
+    "AuthenticationAgent",
+    "CaptionsAgent",
+    "MetadataAgent",
+    "PrivacyAgent",
+    "PublishAgent",
+    "PublishingAgent",
+    "PublishingAgentRegistry",
+    "PublishingPlanner",
+    "ScheduleAgent",
+    "ThumbnailAgent",
+    "UploadAgent",
+    "create_default_publishing_agent_registry",
     # Context & Capability (Phase 2)
     "PublishCapability",
     "PublishingContext",
