@@ -27,6 +27,13 @@ from .context import (
     PublishingContext,
 )
 
+# Phase 4: Production Readiness
+from .dashboard import (
+    JobProgress,
+    PerformanceOptimizer,
+    PublishingDashboard,
+)
+
 # Events (Phase 3)
 from .events import (
     PublishingCompleted,
@@ -40,6 +47,11 @@ from .events import (
 
 # Manifest
 from .manifest import PublishingManifest
+from .metrics import (
+    MetricsAggregator,
+    ProviderMetrics,
+    ThroughputMetrics,
+)
 
 # Models
 from .models import (
@@ -134,6 +146,13 @@ from .stages import (
 )
 
 __all__ = [
+    # Phase 4: Production Readiness
+    "JobProgress",
+    "PerformanceOptimizer",
+    "PublishingDashboard",
+    "MetricsAggregator",
+    "ProviderMetrics",
+    "ThroughputMetrics",
     # Stages & Failures (Phase 3)
     "PublishingFailure",
     "PublishStage",
