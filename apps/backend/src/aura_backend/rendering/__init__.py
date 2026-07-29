@@ -6,6 +6,32 @@ Phase 3: M6 agents, task orchestration, events, metrics
 Phase 4: Tests, documentation, review
 """
 
+# Orchestration (Phase 3)
+from .orchestration import (
+    RenderingPlanner,
+    RenderingAgentRegistry,
+    ClipRenderingAgent,
+    CompositeRenderingAgent,
+    ExportRenderingAgent,
+    ValidationAgent,
+    create_default_rendering_agent_registry,
+)
+
+# Stages (Phase 3)
+from .stages import (
+    RenderStage,
+    StageType,
+    RenderFailure,
+    FailureSeverity,
+    RenderingEvent,
+    RenderingStarted,
+    StageStarted,
+    StageCompleted,
+    StageFailed,
+    RenderingCompleted,
+    RenderingMetrics,
+)
+
 # Context Models (Phase 2)
 from .context import (
     RenderCapability,
