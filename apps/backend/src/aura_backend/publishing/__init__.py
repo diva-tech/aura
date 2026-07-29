@@ -2,7 +2,27 @@
 
 Phase 1: Publishing Foundation
 - Domain models, profiles, scheduling, reporting, retry policies
+
+Phase 2: Publishing Providers
+- Context, capability models, abstract provider interface, reference implementations
 """
+
+# Provider Backends (Phase 2)
+from .backends import (
+    InstagramProvider,
+    LinkedInProvider,
+    MockPublishingProvider,
+    PodcastProvider,
+    TikTokProvider,
+    YouTubeProvider,
+    create_default_provider_registry,
+)
+
+# Context & Capability (Phase 2)
+from .context import (
+    PublishCapability,
+    PublishingContext,
+)
 
 # Manifest
 from .manifest import PublishingManifest
@@ -37,6 +57,13 @@ from .profiles import (
     get_profile,
 )
 
+# Providers (Phase 2)
+from .providers import (
+    ProviderRegistry,
+    PublishingProvider,
+    UploadResponse,
+)
+
 # Reporting
 from .reports import (
     JobReport,
@@ -69,6 +96,21 @@ from .schedule import (
 )
 
 __all__ = [
+    # Context & Capability (Phase 2)
+    "PublishCapability",
+    "PublishingContext",
+    # Providers (Phase 2)
+    "PublishingProvider",
+    "ProviderRegistry",
+    "UploadResponse",
+    # Provider Backends (Phase 2)
+    "InstagramProvider",
+    "LinkedInProvider",
+    "MockPublishingProvider",
+    "PodcastProvider",
+    "TikTokProvider",
+    "YouTubeProvider",
+    "create_default_provider_registry",
     # Models
     "PlatformAccount",
     "PlatformType",
