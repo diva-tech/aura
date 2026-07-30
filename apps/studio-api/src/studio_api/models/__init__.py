@@ -3,9 +3,8 @@
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
-from sqlalchemy.orm import declarative_base
 
-Base = declarative_base()
+from studio_api.database.base import Base
 
 
 class Project(Base):
@@ -42,3 +41,6 @@ class Video(Base):
     thumbnail_path = Column(String(500), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+
+__all__ = ["Base", "Project", "Video"]

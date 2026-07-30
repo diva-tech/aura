@@ -1,11 +1,29 @@
 """API routes."""
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 
 from studio_api.database.config import get_session
+from studio_api.models import Video
+from studio_api.models.analysis import (
+    AnalysisReport,
+    Scene,
+    Suggestion,
+    Transcript,
+    VideoMetrics,
+)
 from studio_api.schemas import AnalysisResponse, ProjectCreate, ProjectResponse, VideoResponse
+from studio_api.schemas.analysis import (
+    AnalysisDetailResponse,
+    AnalysisReportResponse,
+    AnalysisStatusResponse,
+    SceneResponse,
+    SuggestionResponse,
+    TranscriptResponse,
+)
 from studio_api.services import ProjectService, VideoService
+from studio_api.services.analysis_service import AnalysisService
 from studio_api.storage import StorageService
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -164,20 +182,157 @@ async def delete_video(
 
 
 # Analysis endpoints
-@router.post("/projects/{project_id}/analyze", response_model=AnalysisResponse)
+@router.post("/projects/{project_id}/analyze", response_model=AnalysisStatusResponse)
 async def analyze_project(
     project_id: str,
     session: AsyncSession = Depends(get_session),
 ):
-    """Queue project for AI analysis (placeholder)."""
+    """Start AI analysis for project."""
     # Verify project exists
-    service = ProjectService(session)
-    project = await service.get_project(project_id)
+    project_service = ProjectService(session)
+    project = await project_service.get_project(project_id)
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
 
-    # TODO: Integrate with M9-M14 engine
-    return AnalysisResponse(status="queued")
+    # Get first video (for now, analyze the first uploaded video)
+    result = await session.execute(
+        select(Video).where(Video.project_id == project_id).limit(1)
+    )
+    video = result.scalars().first()
+    if not video:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No videos to analyze")
+
+    # Create analysis report
+    analysis_service = AnalysisService(session)
+    report = await analysis_service.create_analysis_report(project_id, video.id)
+
+    # TODO: Queue analysis as async task (use Celery, RQ, or M8 orchestration)
+    # For now, run synchronously
+    try:
+        await analysis_service.analyze_video(report.id, video.storage_path)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    return AnalysisStatusResponse(status="completed", progress=100)
+
+
+@router.get("/projects/{project_id}/analysis", response_model=AnalysisDetailResponse)
+async def get_analysis(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get analysis report for project."""
+    # Get latest analysis
+    result = await session.execute(
+        select(AnalysisReport)
+        .where(AnalysisReport.project_id == project_id)
+        .order_by(AnalysisReport.created_at.desc())
+        .limit(1)
+    )
+    report = result.scalars().first()
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis found")
+
+    # Get metrics
+    metrics_result = await session.execute(
+        select(VideoMetrics).where(VideoMetrics.report_id == report.id).limit(1)
+    )
+    metrics = metrics_result.scalars().first()
+
+    # Get scenes
+    scenes_result = await session.execute(
+        select(Scene).where(Scene.report_id == report.id)
+    )
+    scenes = scenes_result.scalars().all()
+
+    # Get transcript
+    transcript_result = await session.execute(
+        select(Transcript).where(Transcript.report_id == report.id)
+    )
+    transcript = transcript_result.scalars().all()
+
+    # Get suggestions
+    suggestions_result = await session.execute(
+        select(Suggestion).where(Suggestion.report_id == report.id)
+    )
+    suggestions = suggestions_result.scalars().all()
+
+    return AnalysisDetailResponse(
+        report=AnalysisReportResponse.from_orm(report),
+        metrics=metrics,
+        scenes=[SceneResponse.from_orm(s) for s in scenes],
+        transcript=[TranscriptResponse.from_orm(t) for t in transcript],
+        suggestions=[SuggestionResponse.from_orm(s) for s in suggestions],
+    )
+
+
+@router.get("/projects/{project_id}/suggestions", response_model=list[SuggestionResponse])
+async def get_suggestions(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get suggestions for project."""
+    # Get latest analysis
+    result = await session.execute(
+        select(AnalysisReport)
+        .where(AnalysisReport.project_id == project_id)
+        .order_by(AnalysisReport.created_at.desc())
+        .limit(1)
+    )
+    report = result.scalars().first()
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis found")
+
+    # Get suggestions
+    suggestions_result = await session.execute(
+        select(Suggestion).where(Suggestion.report_id == report.id)
+    )
+    return suggestions_result.scalars().all()
+
+
+@router.get("/projects/{project_id}/transcript", response_model=list[TranscriptResponse])
+async def get_transcript(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get transcript for project."""
+    # Get latest analysis
+    result = await session.execute(
+        select(AnalysisReport)
+        .where(AnalysisReport.project_id == project_id)
+        .order_by(AnalysisReport.created_at.desc())
+        .limit(1)
+    )
+    report = result.scalars().first()
+    if not report:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No analysis found")
+
+    # Get transcript
+    transcript_result = await session.execute(
+        select(Transcript).where(Transcript.report_id == report.id)
+    )
+    return transcript_result.scalars().all()
+
+
+@router.post("/projects/{project_id}/suggestions/{suggestion_id}/accept", status_code=status.HTTP_200_OK)
+async def accept_suggestion(
+    project_id: str,
+    suggestion_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Accept a suggestion."""
+    # Get suggestion
+    suggestion_result = await session.execute(
+        select(Suggestion).where(Suggestion.id == suggestion_id)
+    )
+    suggestion = suggestion_result.scalars().first()
+    if not suggestion:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Suggestion not found")
+
+    suggestion.accepted = True
+    await session.commit()
+
+    return {"status": "accepted"}
 
 
 # Health check

@@ -6,8 +6,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from studio_api.api import router
+from studio_api.database.base import Base
 from studio_api.database.config import engine
-from studio_api.models import Base
+
+# Import models to register them with Base
+from studio_api.models import Project, Video  # noqa: F401
+from studio_api.models.analysis import (  # noqa: F401
+    AnalysisReport,
+    Scene,
+    Suggestion,
+    Transcript,
+    VideoMetrics,
+)
 
 
 @asynccontextmanager
