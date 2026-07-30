@@ -3,10 +3,8 @@ Security and sandboxing utilities for tool execution.
 """
 
 import os
-import stat
-from pathlib import Path
-from typing import Optional, Set
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass
@@ -14,19 +12,31 @@ class ToolSandbox:
     """Sandbox configuration for tool execution"""
 
     base_path: Path
-    allowed_extensions: Set[str] = None
-    allowed_directories: Set[Path] = None
+    allowed_extensions: set[str] = None
+    allowed_directories: set[Path] = None
     max_file_size_mb: int = 100
     max_total_size_mb: int = 1000
-    read_only_paths: Set[Path] = None
+    read_only_paths: set[Path] = None
     timeout_seconds: int = 300
 
     def __post_init__(self):
         if self.allowed_extensions is None:
             self.allowed_extensions = {
-                ".py", ".txt", ".json", ".yaml", ".yml",
-                ".md", ".csv", ".xml", ".html", ".js",
-                ".ts", ".tsx", ".jsx", ".css", ".scss"
+                ".py",
+                ".txt",
+                ".json",
+                ".yaml",
+                ".yml",
+                ".md",
+                ".csv",
+                ".xml",
+                ".html",
+                ".js",
+                ".ts",
+                ".tsx",
+                ".jsx",
+                ".css",
+                ".scss",
             }
         if self.allowed_directories is None:
             self.allowed_directories = {self.base_path}
@@ -107,8 +117,7 @@ class PathValidator:
         size_mb = path.stat().st_size / (1024 * 1024)
         if size_mb > self.sandbox.max_file_size_mb:
             raise ValueError(
-                f"File too large: {size_mb:.1f}MB "
-                f"(max: {self.sandbox.max_file_size_mb}MB)"
+                f"File too large: {size_mb:.1f}MB " f"(max: {self.sandbox.max_file_size_mb}MB)"
             )
 
         return int(size_mb * 1024 * 1024)
@@ -170,12 +179,11 @@ class ResourceLimits:
         """Validate memory requirement"""
         if not self.check_memory_available(needed_mb):
             raise MemoryError(
-                f"Insufficient memory: {needed_mb:.1f}MB needed "
-                f"(max: {self.max_memory_mb}MB)"
+                f"Insufficient memory: {needed_mb:.1f}MB needed " f"(max: {self.max_memory_mb}MB)"
             )
 
 
-def create_sandbox(base_path: Optional[str] = None) -> ToolSandbox:
+def create_sandbox(base_path: str | None = None) -> ToolSandbox:
     """Create a tool sandbox"""
     if base_path is None:
         base_path = os.path.expanduser("~/.aura/tools_sandbox")
@@ -183,11 +191,7 @@ def create_sandbox(base_path: Optional[str] = None) -> ToolSandbox:
     base = Path(base_path)
     base.mkdir(parents=True, exist_ok=True)
 
-    return ToolSandbox(
-        base_path=base,
-        allowed_directories={base},
-        timeout_seconds=300
-    )
+    return ToolSandbox(base_path=base, allowed_directories={base}, timeout_seconds=300)
 
 
 @dataclass
@@ -199,20 +203,20 @@ class URLSecurityPolicy:
     allow_localhost: bool = False
     allow_private_ips: bool = False
     allow_cloud_metadata: bool = False
-    blocked_protocols: Set[str] = None
-    blocked_ip_ranges: List[str] = None
+    blocked_protocols: set[str] = None
+    blocked_ip_ranges: list[str] = None
 
     def __post_init__(self):
         if self.blocked_protocols is None:
             self.blocked_protocols = {"file", "ftp", "javascript", "data", "blob"}
         if self.blocked_ip_ranges is None:
             self.blocked_ip_ranges = [
-                "127.0.0.0/8",      # localhost
-                "0.0.0.0/8",        # this network
-                "10.0.0.0/8",       # private
-                "172.16.0.0/12",    # private
-                "192.168.0.0/16",   # private
-                "169.254.0.0/16",   # link-local/metadata
+                "127.0.0.0/8",  # localhost
+                "0.0.0.0/8",  # this network
+                "10.0.0.0/8",  # private
+                "172.16.0.0/12",  # private
+                "192.168.0.0/16",  # private
+                "169.254.0.0/16",  # link-local/metadata
             ]
 
 
@@ -251,8 +255,8 @@ class URLValidator:
         Ensures URL is safe to navigate to.
         """
         try:
-            from urllib.parse import urlparse
             import ipaddress
+            from urllib.parse import urlparse
         except ImportError as e:
             raise ImportError("urllib required for URL validation") from e
 
