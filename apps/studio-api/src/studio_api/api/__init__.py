@@ -24,7 +24,15 @@ from studio_api.schemas.analysis import (
 )
 from studio_api.services import ProjectService, VideoService
 from studio_api.services.analysis_service import AnalysisService
+from studio_api.services.edit_plan_service import EditPlanService
 from studio_api.storage import StorageService
+from studio_api.schemas.edit_plan import (
+    EditPlanResponse,
+    EditPlanCreateRequest,
+    EditPlanUpdateRequest,
+    EditPlanApproveRequest,
+    EditPlanRegenerateRequest,
+)
 
 router = APIRouter(prefix="/api", tags=["api"])
 
@@ -333,6 +341,116 @@ async def accept_suggestion(
     await session.commit()
 
     return {"status": "accepted"}
+
+
+# Edit plan endpoints
+@router.post(
+    "/projects/{project_id}/edit-plan",
+    response_model=EditPlanResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_edit_plan(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Generate edit plan from accepted suggestions."""
+    # Verify project exists
+    project_service = ProjectService(session)
+    project = await project_service.get_project(project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+
+    try:
+        service = EditPlanService(session)
+        plan = await service.generate_edit_plan(project_id)
+        return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/projects/{project_id}/edit-plan", response_model=EditPlanResponse)
+async def get_edit_plan(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get edit plan for project."""
+    try:
+        service = EditPlanService(session)
+        plan = await service.get_project_edit_plan(project_id)
+        if not plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No edit plan found"
+            )
+        return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/edit-plan/{plan_id}/approve", response_model=EditPlanResponse)
+async def approve_edit_plan(
+    plan_id: str,
+    data: EditPlanApproveRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Approve an edit plan."""
+    try:
+        service = EditPlanService(session)
+        plan = await service.approve_edit_plan(plan_id)
+        if not plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Edit plan not found"
+            )
+        return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/edit-plan/{plan_id}/regenerate", response_model=EditPlanResponse)
+async def regenerate_edit_plan(
+    plan_id: str,
+    data: EditPlanRegenerateRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Regenerate edit plan based on user prompt."""
+    try:
+        service = EditPlanService(session)
+        plan = await service.regenerate_edit_plan(plan_id, data.prompt)
+        if not plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Edit plan not found"
+            )
+        return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/edit-plan/{plan_id}/undo", response_model=EditPlanResponse)
+async def undo_edit_plan(
+    plan_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Undo last change to edit plan."""
+    try:
+        service = EditPlanService(session)
+        plan = await service.undo_edit_plan(plan_id)
+        if not plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Cannot undo. At initial version.",
+            )
+        return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
 
 
 # Health check
