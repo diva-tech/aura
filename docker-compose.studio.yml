@@ -1,0 +1,74 @@
+version: "3.8"
+
+services:
+  postgres-studio:
+    image: postgres:16-alpine
+    container_name: postgres-studio
+    environment:
+      POSTGRES_DB: aura_studio
+      POSTGRES_USER: aura
+      POSTGRES_PASSWORD: aura
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_studio_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aura"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis-studio:
+    image: redis:7-alpine
+    container_name: redis-studio
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_studio_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  studio-api:
+    build:
+      context: ./apps/studio-api
+      dockerfile: Dockerfile
+    container_name: studio-api
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://aura:aura@postgres-studio:5432/aura_studio
+      - REDIS_URL=redis://redis-studio:6379/0
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres-studio:
+        condition: service_healthy
+      redis-studio:
+        condition: service_healthy
+    volumes:
+      - ./storage:/storage
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  studio-web:
+    build:
+      context: ./apps/studio-web
+      dockerfile: Dockerfile
+    container_name: studio-web
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    ports:
+      - "3000:3000"
+    depends_on:
+      - studio-api
+    volumes:
+      - ./apps/studio-web:/app
+      - /app/node_modules
+
+volumes:
+  postgres_studio_data:
+  redis_studio_data:
