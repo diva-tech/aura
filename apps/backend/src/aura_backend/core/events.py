@@ -15,22 +15,19 @@ the same EventBus interface without changing application code.
 from __future__ import annotations
 
 import asyncio
-import json
 import threading
 import uuid
-from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, asdict
+from collections.abc import Awaitable, Callable
 from datetime import datetime
-from enum import Enum
-from typing import Any, Callable, Generic, TypeVar, Optional, Dict, List, Set
-from uuid import UUID
+from enum import StrEnum
+from typing import Any, TypeVar
 
 from pydantic import BaseModel, Field
 
 T = TypeVar("T", bound="BaseEvent")
 
 
-class EventPriority(str, Enum):
+class EventPriority(StrEnum):
     """Event processing priority"""
 
     HIGH = "high"
@@ -48,7 +45,7 @@ class BaseEvent(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     source: str = Field(default="aura")
     priority: EventPriority = Field(default=EventPriority.NORMAL)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
 
     class Config:
         use_enum_values = True
@@ -129,7 +126,7 @@ class HealthChanged(BaseEvent):
 
 # Type aliases
 EventHandler = Callable[[BaseEvent], Any]
-AsyncEventHandler = Callable[[BaseEvent], "Awaitable[None]"]
+AsyncEventHandler = Callable[[BaseEvent], Awaitable[None]]
 
 
 class EventSubscription:
@@ -158,9 +155,7 @@ class EventSubscription:
                 self.handler(event)
             self.event_count += 1
         except Exception as e:
-            raise EventHandlerError(
-                f"Error handling {event.event_type}: {str(e)}"
-            ) from e
+            raise EventHandlerError(f"Error handling {event.event_type}: {str(e)}") from e
 
 
 class EventBus:
@@ -178,9 +173,9 @@ class EventBus:
     """
 
     def __init__(self):
-        self._subscriptions: Dict[str, List[EventSubscription]] = {}
-        self._subscriptions_by_id: Dict[str, tuple[str, EventSubscription]] = {}
-        self._all_subscriptions: List[EventSubscription] = []
+        self._subscriptions: dict[str, list[EventSubscription]] = {}
+        self._subscriptions_by_id: dict[str, tuple[str, EventSubscription]] = {}
+        self._all_subscriptions: list[EventSubscription] = []
         self._subscriptions_lock = threading.RLock()
         self._event_count = 0
         self._event_count_lock = threading.Lock()
@@ -190,7 +185,7 @@ class EventBus:
         self,
         event_type: str,
         handler: EventHandler,
-        subscription_id: Optional[str] = None,
+        subscription_id: str | None = None,
     ) -> str:
         """
         Subscribe to an event type with a sync handler
@@ -220,7 +215,7 @@ class EventBus:
         self,
         event_type: str,
         handler: AsyncEventHandler,
-        subscription_id: Optional[str] = None,
+        subscription_id: str | None = None,
     ) -> str:
         """
         Subscribe to an event type with an async handler
@@ -264,13 +259,13 @@ class EventBus:
 
             if event_type in self._subscriptions:
                 self._subscriptions[event_type] = [
-                    s for s in self._subscriptions[event_type]
+                    s
+                    for s in self._subscriptions[event_type]
                     if s.subscription_id != subscription_id
                 ]
 
             self._all_subscriptions = [
-                s for s in self._all_subscriptions
-                if s.subscription_id != subscription_id
+                s for s in self._all_subscriptions if s.subscription_id != subscription_id
             ]
 
             return True
@@ -310,27 +305,23 @@ class EventBus:
         if async_tasks:
             try:
                 await asyncio.wait_for(
-                    asyncio.gather(*async_tasks, return_exceptions=True),
-                    timeout=timeout_seconds
+                    asyncio.gather(*async_tasks, return_exceptions=True), timeout=timeout_seconds
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 pass
 
     async def _handle_with_timeout(
-        self,
-        subscription: EventSubscription,
-        event: BaseEvent,
-        timeout_seconds: float
+        self, subscription: EventSubscription, event: BaseEvent, timeout_seconds: float
     ) -> None:
         """Handle an event with timeout protection"""
         try:
             await asyncio.wait_for(subscription.handle(event), timeout=timeout_seconds)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             pass
         except EventHandlerError:
             pass
 
-    def list_subscriptions(self) -> List[Dict[str, Any]]:
+    def list_subscriptions(self) -> list[dict[str, Any]]:
         """List all active subscriptions"""
         with self._subscriptions_lock:
             return [
@@ -344,7 +335,7 @@ class EventBus:
                 for sub in self._all_subscriptions
             ]
 
-    def subscription_count(self, event_type: Optional[str] = None) -> int:
+    def subscription_count(self, event_type: str | None = None) -> int:
         """Get count of subscriptions for an event type or total"""
         with self._subscriptions_lock:
             if event_type:
@@ -360,7 +351,7 @@ class EventBus:
         """Get bus uptime in milliseconds"""
         return (datetime.utcnow() - self._start_time).total_seconds() * 1000
 
-    def health(self) -> Dict[str, Any]:
+    def health(self) -> dict[str, Any]:
         """Get bus health status"""
         with self._event_count_lock:
             event_count = self._event_count
@@ -391,13 +382,13 @@ class EventSubscriber:
 
     def __init__(self, event_bus: EventBus):
         self._bus = event_bus
-        self._subscriptions: Set[str] = set()
+        self._subscriptions: set[str] = set()
 
     def subscribe(
         self,
         event_type: str,
         handler: EventHandler,
-        subscription_id: Optional[str] = None,
+        subscription_id: str | None = None,
     ) -> str:
         """Subscribe to an event type"""
         sub_id = self._bus.subscribe(event_type, handler, subscription_id)
@@ -408,7 +399,7 @@ class EventSubscriber:
         self,
         event_type: str,
         handler: AsyncEventHandler,
-        subscription_id: Optional[str] = None,
+        subscription_id: str | None = None,
     ) -> str:
         """Subscribe to an event type with async handler"""
         sub_id = self._bus.subscribe_async(event_type, handler, subscription_id)
@@ -435,3 +426,7 @@ class EventHandlerError(Exception):
     """Raised when an event handler fails"""
 
     pass
+
+
+# Alias for compatibility with existing imports
+BaseEventBus = EventBus
