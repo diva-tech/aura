@@ -25,6 +25,7 @@ from studio_api.schemas.analysis import (
 from studio_api.services import ProjectService, VideoService
 from studio_api.services.analysis_service import AnalysisService
 from studio_api.services.edit_plan_service import EditPlanService
+from studio_api.services.preview_service import PreviewService
 from studio_api.storage import StorageService
 from studio_api.schemas.edit_plan import (
     EditPlanResponse,
@@ -32,6 +33,16 @@ from studio_api.schemas.edit_plan import (
     EditPlanUpdateRequest,
     EditPlanApproveRequest,
     EditPlanRegenerateRequest,
+)
+from studio_api.schemas.preview import (
+    PreviewResponse,
+    PreviewDetailResponse,
+    RenderEstimateResponse,
+    RenderSettingsResponse,
+    GeneratePreviewRequest,
+    PreviewSettingsUpdateRequest,
+    ApprovePreviewRequest,
+    PreviewCommentRequest,
 )
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -447,6 +458,166 @@ async def undo_edit_plan(
                 detail="Cannot undo. At initial version.",
             )
         return plan
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+# Preview endpoints
+@router.post(
+    "/projects/{project_id}/preview",
+    response_model=PreviewResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def generate_preview(
+    project_id: str,
+    data: GeneratePreviewRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Generate preview from approved edit plan."""
+    try:
+        # Verify project exists
+        project_service = ProjectService(session)
+        project = await project_service.get_project(project_id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
+
+        # Get latest edit plan
+        edit_plan_service = EditPlanService(session)
+        edit_plan = await edit_plan_service.get_project_edit_plan(project_id)
+        if not edit_plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No edit plan found"
+            )
+
+        if not edit_plan.approved:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Edit plan must be approved before preview",
+            )
+
+        service = PreviewService(session)
+        preview = await service.generate_preview(
+            project_id, edit_plan.id, data.quality
+        )
+        return preview
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/projects/{project_id}/preview", response_model=PreviewResponse)
+async def get_preview(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get latest preview for project."""
+    try:
+        service = PreviewService(session)
+        preview = await service.get_project_preview(project_id)
+        if not preview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No preview found"
+            )
+        return preview
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/preview/{preview_id}/approve", response_model=PreviewResponse)
+async def approve_preview(
+    preview_id: str,
+    data: ApprovePreviewRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Approve preview for rendering."""
+    try:
+        service = PreviewService(session)
+        preview = await service.approve_preview(preview_id)
+        if not preview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Preview not found"
+            )
+        return preview
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get(
+    "/projects/{project_id}/render-estimate", response_model=RenderEstimateResponse
+)
+async def get_render_estimate(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get render estimate for project."""
+    try:
+        # Get latest edit plan
+        edit_plan_service = EditPlanService(session)
+        edit_plan = await edit_plan_service.get_project_edit_plan(project_id)
+        if not edit_plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No edit plan found"
+            )
+
+        service = PreviewService(session)
+        estimate = await service.get_render_estimate(project_id, edit_plan.id)
+        if not estimate:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No render estimate found"
+            )
+        return estimate
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.put(
+    "/projects/{project_id}/render-settings",
+    response_model=RenderSettingsResponse,
+)
+async def update_render_settings(
+    project_id: str,
+    data: PreviewSettingsUpdateRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Update render settings for project."""
+    try:
+        service = PreviewService(session)
+        settings = await service.update_render_settings(project_id, **data.dict(exclude_none=True))
+        if not settings:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Settings not found"
+            )
+        return settings
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/preview/{preview_id}/comments")
+async def add_preview_comment(
+    preview_id: str,
+    data: PreviewCommentRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Add comment to preview frame."""
+    try:
+        service = PreviewService(session)
+        comment = await service.add_comment(
+            preview_id, data.timestamp, data.text, data.author
+        )
+        return {"status": "created", "comment_id": comment.id if comment else None}
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
