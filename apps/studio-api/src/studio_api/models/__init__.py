@@ -14,6 +14,7 @@ from studio_api.models import (  # noqa: F401
     analytics,
     copilot,
     creator_intelligence,
+    plugin,
 )
 
 

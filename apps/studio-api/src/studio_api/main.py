@@ -34,6 +34,16 @@ from studio_api.models.creator_intelligence import (  # noqa: F401
     ContentOpportunity,
     ThumbnailInsight,
 )
+from studio_api.models.plugin import (  # noqa: F401
+    Plugin,
+    PluginInstallation,
+    PluginPermission,
+    PluginAPI,
+    PluginMarketplaceEntry,
+    PluginRating,
+    PluginSettings,
+    PluginOAuth,
+)
 
 
 @asynccontextmanager

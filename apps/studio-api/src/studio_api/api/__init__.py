@@ -1,7 +1,7 @@
 """API routes."""
 
 from datetime import datetime
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from typing import Optional
@@ -1233,6 +1233,243 @@ async def get_creator_context(
         "context": context,
         "timestamp": datetime.utcnow(),
     }
+
+
+# Plugin SDK & Marketplace endpoints
+from studio_api.services.plugin_service import PluginService
+from studio_api.schemas.plugin import (
+    PluginResponse,
+    PluginInstallationResponse,
+    PluginAPIResponse,
+    PluginMarketplaceResponse,
+    PluginRatingResponse,
+    PluginManifestRequest,
+    PluginInstallRequest,
+    PluginSettingsUpdateRequest,
+    PluginRatingRequest,
+    PluginOAuthRequest,
+)
+
+
+@router.post("/plugins/register", response_model=PluginResponse)
+async def register_plugin(
+    data: PluginManifestRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Register a new plugin."""
+    service = PluginService()
+    plugin = await service.register_plugin(
+        session,
+        data.id,
+        data.name,
+        data.version,
+        data.description,
+        data.author,
+        data.permissions,
+        [api["type"] for api in data.apis],
+        data.dict(),
+        data.author_url,
+        data.license,
+        data.repository_url,
+        data.documentation_url,
+        data.icon_url,
+        data.settings_schema,
+    )
+    return plugin
+
+
+@router.get("/plugins", response_model=list[PluginResponse])
+async def list_plugins(
+    status: str = "published",
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """List plugins."""
+    service = PluginService()
+    return await service.list_plugins(session, status, limit)
+
+
+@router.get("/plugins/{plugin_id}", response_model=PluginResponse)
+async def get_plugin(
+    plugin_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get plugin details."""
+    service = PluginService()
+    plugin = await service.get_plugin(session, plugin_id)
+    if not plugin:
+        raise HTTPException(status_code=404, detail="Plugin not found")
+    return plugin
+
+
+@router.post("/plugins/{plugin_id}/install",
+             response_model=PluginInstallationResponse)
+async def install_plugin(
+    plugin_id: str,
+    project_id: str,
+    data: PluginInstallRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Install plugin to project."""
+    service = PluginService()
+    installation = await service.install_plugin(
+        session, plugin_id, project_id, data.version, data.auto_update
+    )
+    return installation
+
+
+@router.post("/plugins/{plugin_id}/uninstall",
+             response_model=PluginInstallationResponse)
+async def uninstall_plugin(
+    plugin_id: str,
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Uninstall plugin from project."""
+    service = PluginService()
+    installation = await service.uninstall_plugin(session, plugin_id, project_id)
+    return installation
+
+
+@router.post("/plugins/{plugin_id}/enable",
+             response_model=PluginInstallationResponse)
+async def enable_plugin(
+    plugin_id: str,
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Enable plugin."""
+    service = PluginService()
+    installation = await service.enable_plugin(session, plugin_id, project_id)
+    return installation
+
+
+@router.post("/plugins/{plugin_id}/disable",
+             response_model=PluginInstallationResponse)
+async def disable_plugin(
+    plugin_id: str,
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Disable plugin."""
+    service = PluginService()
+    installation = await service.disable_plugin(session, plugin_id, project_id)
+    return installation
+
+
+@router.get("/plugins/{plugin_id}/apis",
+            response_model=list[PluginAPIResponse])
+async def get_plugin_apis(
+    plugin_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get plugin APIs."""
+    service = PluginService()
+    return await service.get_plugin_apis(session, plugin_id)
+
+
+@router.get("/apis/{api_type}", response_model=list[PluginAPIResponse])
+async def get_apis_by_type(
+    api_type: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get all APIs of a specific type."""
+    service = PluginService()
+    return await service.get_apis_by_type(session, api_type)
+
+
+@router.put("/plugins/{plugin_id}/settings",
+            response_model=PluginInstallationResponse)
+async def update_plugin_settings(
+    plugin_id: str,
+    project_id: str,
+    data: PluginSettingsUpdateRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Update plugin settings."""
+    service = PluginService()
+    query = select(PluginInstallation).where(
+        and_(
+            PluginInstallation.plugin_id == plugin_id,
+            PluginInstallation.project_id == project_id,
+        )
+    )
+    result = await session.execute(query)
+    installation = result.scalar()
+    if not installation:
+        raise HTTPException(status_code=404, detail="Installation not found")
+
+    return await service.update_plugin_settings(
+        session, installation.id, data.settings
+    )
+
+
+@router.post("/plugins/{plugin_id}/rate",
+             response_model=PluginRatingResponse)
+async def rate_plugin(
+    plugin_id: str,
+    project_id: str,
+    data: PluginRatingRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Rate plugin."""
+    service = PluginService()
+    return await service.rate_plugin(
+        session, plugin_id, project_id, data.rating, data.title, data.review
+    )
+
+
+@router.get("/marketplace", response_model=list[PluginMarketplaceResponse])
+async def get_marketplace(
+    category: Optional[str] = None,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get marketplace entries."""
+    service = PluginService()
+    return await service.get_marketplace_entries(session, category, limit)
+
+
+@router.get("/plugins/{plugin_id}/installations",
+            response_model=list[PluginInstallationResponse])
+async def get_plugin_installations(
+    plugin_id: str,
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get plugin installations."""
+    service = PluginService()
+    return await service.get_plugin_installations(session, project_id)
+
+
+@router.post("/plugins/{plugin_id}/oauth")
+async def connect_oauth(
+    plugin_id: str,
+    project_id: str,
+    data: PluginOAuthRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Connect OAuth credentials for plugin."""
+    service = PluginService()
+    query = select(PluginInstallation).where(
+        and_(
+            PluginInstallation.plugin_id == plugin_id,
+            PluginInstallation.project_id == project_id,
+        )
+    )
+    result = await session.execute(query)
+    installation = result.scalar()
+    if not installation:
+        raise HTTPException(status_code=404, detail="Installation not found")
+
+    oauth = await service.add_oauth_credential(
+        session,
+        installation.id,
+        data.provider,
+        data.code,  # In production, exchange code for token
+        scope=getattr(data, "scope", None),
+    )
+    return {"status": "connected", "provider": data.provider}
 
 
 # Health check
