@@ -24,6 +24,16 @@ from studio_api.models.copilot import (  # noqa: F401
     CopilotRecommendation,
     CopilotAction,
 )
+from studio_api.models.creator_intelligence import (  # noqa: F401
+    CreatorProfile,
+    CreatorBrief,
+    CreatorInsight,
+    AIExplanation,
+    PerformancePrediction,
+    VideoHealthScore,
+    ContentOpportunity,
+    ThumbnailInsight,
+)
 
 
 @asynccontextmanager

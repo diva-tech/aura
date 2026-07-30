@@ -1,8 +1,10 @@
 """API routes."""
 
+from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from typing import Optional
 
 from studio_api.database.config import get_session
 from studio_api.models import Video
@@ -1103,6 +1105,134 @@ async def check_platform_health(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
         )
+
+
+# Creator Intelligence endpoints
+from studio_api.services.creator_intelligence_service import (
+    CreatorIntelligenceService,
+)
+from studio_api.schemas.creator_intelligence import (
+    CreatorBriefResponse,
+    CreatorInsightResponse,
+    CreatorProfileResponse,
+    AIExplanationResponse,
+    PerformancePredictionResponse,
+    VideoHealthScoreResponse,
+    ContentOpportunityResponse,
+    ThumbnailInsightResponse,
+)
+
+
+@router.get("/creator/{project_id}/profile",
+            response_model=CreatorProfileResponse)
+async def get_creator_profile(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get creator profile."""
+    service = CreatorIntelligenceService()
+    return await service.get_or_create_profile(session, project_id)
+
+
+@router.get("/creator/{project_id}/brief",
+            response_model=CreatorBriefResponse)
+async def get_creator_brief(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get daily creator brief."""
+    service = CreatorIntelligenceService()
+    return await service.generate_creator_brief(session, project_id)
+
+
+@router.get("/creator/{project_id}/insights",
+            response_model=list[CreatorInsightResponse])
+async def get_creator_insights(
+    project_id: str,
+    insight_type: Optional[str] = None,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get creator insights."""
+    service = CreatorIntelligenceService()
+    return await service.get_insights(
+        session, project_id, insight_type, limit
+    )
+
+
+@router.get("/creator/{project_id}/opportunities",
+            response_model=list[ContentOpportunityResponse])
+async def get_content_opportunities(
+    project_id: str,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get content opportunities."""
+    service = CreatorIntelligenceService()
+    return await service.get_opportunities(session, project_id, limit)
+
+
+@router.get("/creator/{project_id}/health",
+            response_model=VideoHealthScoreResponse)
+async def get_video_health_score(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get video health score."""
+    service = CreatorIntelligenceService()
+    return await service.create_health_score(session, project_id)
+
+
+@router.get("/creator/{project_id}/prediction",
+            response_model=PerformancePredictionResponse)
+async def get_performance_prediction(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get performance prediction."""
+    service = CreatorIntelligenceService()
+    return await service.create_prediction(session, project_id)
+
+
+@router.get("/creator/{project_id}/explanations",
+            response_model=list[AIExplanationResponse])
+async def get_explanations(
+    project_id: str,
+    subject_type: Optional[str] = None,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get AI explanations."""
+    service = CreatorIntelligenceService()
+    return await service.get_explanations(
+        session, project_id, subject_type, limit
+    )
+
+
+@router.get("/creator/{project_id}/thumbnail",
+            response_model=ThumbnailInsightResponse)
+async def get_thumbnail_insight(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get thumbnail insight."""
+    service = CreatorIntelligenceService()
+    return await service.create_thumbnail_insight(session, project_id)
+
+
+@router.get("/creator/{project_id}/context")
+async def get_creator_context(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get aggregated creator context for copilot."""
+    service = CreatorIntelligenceService()
+    context = await service.aggregate_creator_context(session, project_id)
+    return {
+        "project_id": project_id,
+        "context": context,
+        "timestamp": datetime.utcnow(),
+    }
 
 
 # Health check
