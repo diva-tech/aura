@@ -12,6 +12,12 @@ Phase 2: Analytics Providers
 - Abstract provider interface with async methods
 - Six reference provider implementations
 - Provider registry for discovery and selection
+
+Phase 3: Learning Orchestration
+- Learning stage and failure models
+- DAG-based planning with M8 integration
+- Seven M6 learning agents
+- Lifecycle events and metrics
 """
 
 from .backends import (
@@ -24,6 +30,15 @@ from .backends import (
     create_default_provider_registry,
 )
 from .context import AnalyticsCapability, LearningContext
+from .events import (
+    LearningCompleted,
+    LearningEvent,
+    LearningMetricsEvent,
+    LearningStarted,
+    StageCompleted,
+    StageFailed,
+    StageStarted,
+)
 from .manifest import LearningManifest
 from .memory import (
     ConfidenceHistory,
@@ -60,6 +75,20 @@ from .models import (
     VideoPerformance,
     WatchTimeMetrics,
 )
+from .orchestration import (
+    AnalysisAgent,
+    AuthenticationAgent,
+    LearningAgent,
+    LearningAgentRegistry,
+    LearningPlanner,
+    MemoryUpdateAgent,
+    MetricsRetrievalAgent,
+    ProfileUpdateAgent,
+    RecommendationAgent,
+    ValidationAgent,
+    create_default_learning_agent_registry,
+)
+from .orchestration import LearningTask as M8LearningTask
 from .profiles import (
     AudienceProfile,
     AudienceSegment,
@@ -81,8 +110,33 @@ from .recommendations import (
     RecommendationBatch,
     RecommendationSummary,
 )
+from .stages import LearningFailure, LearningStage, LearningStageStatus, StageType
 
 __all__ = [
+    # Phase 3: Learning Orchestration
+    "LearningStage",
+    "LearningStageStatus",
+    "StageType",
+    "LearningFailure",
+    "LearningEvent",
+    "LearningStarted",
+    "StageStarted",
+    "StageCompleted",
+    "StageFailed",
+    "LearningCompleted",
+    "LearningMetricsEvent",
+    "M8LearningTask",
+    "LearningAgent",
+    "ValidationAgent",
+    "AuthenticationAgent",
+    "MetricsRetrievalAgent",
+    "AnalysisAgent",
+    "RecommendationAgent",
+    "ProfileUpdateAgent",
+    "MemoryUpdateAgent",
+    "LearningAgentRegistry",
+    "LearningPlanner",
+    "create_default_learning_agent_registry",
     # Phase 2: Analytics Providers
     "LearningContext",
     "AnalyticsCapability",
