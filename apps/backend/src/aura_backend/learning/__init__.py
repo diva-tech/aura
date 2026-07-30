@@ -18,6 +18,12 @@ Phase 3: Learning Orchestration
 - DAG-based planning with M8 integration
 - Seven M6 learning agents
 - Lifecycle events and metrics
+
+Phase 4: Production Readiness
+- Learning dashboard for operational monitoring
+- Operational metrics aggregation
+- Performance optimization strategies
+- Integration tests and benchmarks
 """
 
 from .backends import (
@@ -30,6 +36,16 @@ from .backends import (
     create_default_provider_registry,
 )
 from .context import AnalyticsCapability, LearningContext
+from .dashboard import (
+    AnalyticsProgress,
+    CreatorProfileEvolution,
+    LearningDashboard,
+    LearningQueueItem,
+    MemoryStatistics,
+    ProviderHealth,
+    ProviderHealthStatus,
+    RecommendationSummary,
+)
 from .events import (
     LearningCompleted,
     LearningEvent,
@@ -75,6 +91,23 @@ from .models import (
     VideoPerformance,
     WatchTimeMetrics,
 )
+from .operational_metrics import (
+    ConfidenceDistribution,
+    LearningThroughputMetric,
+    ObjectiveCompletionMetric,
+    OperationalMetricsAggregator,
+    ProviderLatencyMetric,
+    RecommendationMetric,
+    StageDurationMetric,
+)
+from .optimizer import (
+    CapabilityBasedProviderSelector,
+    ParallelAnalyticsCollector,
+    QueueOptimizer,
+    RecommendationCacheEntry,
+    RecommendationCacheManager,
+    RetryOptimizer,
+)
 from .orchestration import (
     AnalysisAgent,
     AuthenticationAgent,
@@ -108,11 +141,32 @@ from .providers import (
 from .recommendations import (
     CategoryRecommendations,
     RecommendationBatch,
-    RecommendationSummary,
 )
 from .stages import LearningFailure, LearningStage, LearningStageStatus, StageType
 
 __all__ = [
+    # Phase 4: Production Readiness
+    "LearningDashboard",
+    "LearningQueueItem",
+    "AnalyticsProgress",
+    "ProviderHealth",
+    "ProviderHealthStatus",
+    "RecommendationSummary",
+    "CreatorProfileEvolution",
+    "MemoryStatistics",
+    "OperationalMetricsAggregator",
+    "StageDurationMetric",
+    "ProviderLatencyMetric",
+    "RecommendationMetric",
+    "ConfidenceDistribution",
+    "ObjectiveCompletionMetric",
+    "LearningThroughputMetric",
+    "CapabilityBasedProviderSelector",
+    "RecommendationCacheManager",
+    "RecommendationCacheEntry",
+    "QueueOptimizer",
+    "RetryOptimizer",
+    "ParallelAnalyticsCollector",
     # Phase 3: Learning Orchestration
     "LearningStage",
     "LearningStageStatus",
