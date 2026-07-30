@@ -23,12 +23,12 @@ if ! command -v docker-compose &> /dev/null; then
     exit 1
 fi
 
-# Build and start services
+# Build and start services (dev mode - skip desktop app)
 echo "📦 Building Docker images..."
-docker-compose build --quiet
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --quiet
 
 echo "🐳 Starting services..."
-docker-compose up -d
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # Wait for services to be healthy
 echo "⏳ Waiting for services to be ready..."
@@ -48,7 +48,7 @@ for i in {1..10}; do
         echo "❌ Backend: Failed to start"
         echo ""
         echo "Logs:"
-        docker-compose logs backend
+        docker-compose -f docker-compose.yml -f docker-compose.dev.yml logs backend
         exit 1
     fi
     sleep 2
@@ -56,7 +56,7 @@ done
 
 # Postgres health check
 for i in {1..10}; do
-    if docker-compose exec -T postgres pg_isready -U aura_user > /dev/null 2>&1; then
+    if docker-compose -f docker-compose.yml -f docker-compose.dev.yml exec -T postgres pg_isready -U aura_user > /dev/null 2>&1; then
         echo "✅ PostgreSQL: Running on localhost:5432"
         break
     fi
@@ -68,7 +68,7 @@ done
 
 # Redis health check
 for i in {1..10}; do
-    if docker-compose exec -T redis redis-cli ping > /dev/null 2>&1; then
+    if docker-compose -f docker-compose.yml -f docker-compose.dev.yml exec -T redis redis-cli ping > /dev/null 2>&1; then
         echo "✅ Redis: Running on localhost:6379"
         break
     fi

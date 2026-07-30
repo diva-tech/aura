@@ -20,12 +20,12 @@ if (-not $dockerComposeExists) {
     exit 1
 }
 
-# Build and start services
+# Build and start services (dev mode - skip desktop app)
 Write-Host "📦 Building Docker images..." -ForegroundColor Yellow
-docker-compose build --quiet
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml build --quiet
 
 Write-Host "🐳 Starting services..." -ForegroundColor Yellow
-docker-compose up -d
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up -d
 
 # Wait for services to be healthy
 Write-Host "⏳ Waiting for services to be ready..." -ForegroundColor Yellow
