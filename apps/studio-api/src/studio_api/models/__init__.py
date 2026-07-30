@@ -5,7 +5,7 @@ from datetime import datetime
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 
 from studio_api.database.base import Base
-from studio_api.models import analysis, edit_plan, preview, render, publish, analytics  # noqa: F401
+from studio_api.models import analysis, edit_plan, preview, render, publish, analytics, copilot  # noqa: F401
 
 
 class Project(Base):

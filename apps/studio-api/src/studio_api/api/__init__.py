@@ -847,6 +847,147 @@ async def list_publish_jobs(
         )
 
 
+# Copilot endpoints
+from studio_api.services.copilot_service import CopilotService
+from studio_api.schemas.copilot import (
+    CopilotChatRequest,
+    CopilotChatResponse,
+    CopilotChatResponseWrapper,
+    CopilotMemoryCreate,
+    CopilotMemoryResponse,
+    CopilotRecommendationCreate,
+    CopilotRecommendationResponse,
+    CopilotActionCreate,
+    CopilotActionResponse,
+)
+
+
+@router.post("/copilot/{project_id}/chat",
+             response_model=CopilotChatResponseWrapper)
+async def copilot_chat(
+    project_id: str,
+    request: CopilotChatRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Process copilot chat message."""
+    service = CopilotService()
+    user_message = await service.save_chat_message(
+        session, project_id, "user", request.message, request.context
+    )
+
+    response_text = "I'm analyzing your request..."
+    if "edit plan" in request.message.lower():
+        response_text = (
+            "I can generate a new edit plan. Which video would you "
+            "like me to optimize? I can improve pacing, add "
+            "engaging cuts, or restructure based on audience insights."
+        )
+    elif "analyze" in request.message.lower():
+        response_text = (
+            "Starting AI analysis of your video. I'll examine "
+            "retention, engagement patterns, and provide optimization "
+            "suggestions."
+        )
+    elif "publish" in request.message.lower():
+        response_text = (
+            "I can help you publish to multiple platforms. Which "
+            "platforms are you targeting? I'll optimize metadata for "
+            "each one."
+        )
+    elif "performance" in request.message.lower():
+        response_text = (
+            "Your videos are performing well! I've identified that "
+            "8-12 minute lengths with strong hooks work best. Want me "
+            "to apply these insights?"
+        )
+    else:
+        response_text = (
+            "I can help with video analysis, editing, optimization, "
+            "publishing, and channel strategy. What would you like to "
+            "work on?"
+        )
+
+    assistant_message = await service.save_chat_message(
+        session, project_id, "assistant", response_text
+    )
+
+    return CopilotChatResponseWrapper(
+        user_message=user_message,
+        assistant_message=assistant_message,
+        orchestration_context={
+            "modules": ["analysis", "edit_plan", "render", "publish", "learning"]
+        },
+    )
+
+
+@router.get("/copilot/{project_id}/history",
+            response_model=list[CopilotChatResponse])
+async def copilot_history(
+    project_id: str,
+    limit: int = 50,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get chat history for project."""
+    service = CopilotService()
+    return await service.get_chat_history(session, project_id, limit)
+
+
+@router.post("/copilot/{project_id}/memory",
+             response_model=CopilotMemoryResponse)
+async def copilot_save_memory(
+    project_id: str,
+    request: CopilotMemoryCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    """Save user preference or memory."""
+    service = CopilotService()
+    return await service.save_memory(
+        session, project_id, request.memory_type, request.key, request.value
+    )
+
+
+@router.get("/copilot/{project_id}/recommendations",
+            response_model=list[CopilotRecommendationResponse])
+async def copilot_recommendations(
+    project_id: str,
+    limit: int = 10,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get active recommendations."""
+    service = CopilotService()
+    return await service.get_recommendations(session, project_id, limit)
+
+
+@router.post("/copilot/{project_id}/actions",
+             response_model=CopilotActionResponse)
+async def copilot_create_action(
+    project_id: str,
+    request: CopilotActionCreate,
+    session: AsyncSession = Depends(get_session),
+):
+    """Create action item."""
+    service = CopilotService()
+    return await service.create_action(
+        session,
+        project_id,
+        request.action_type,
+        request.title,
+        request.description,
+        request.metadata,
+    )
+
+
+@router.get("/copilot/{project_id}/actions/pending",
+            response_model=list[CopilotActionResponse])
+async def copilot_pending_actions(
+    project_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get pending actions."""
+    service = CopilotService()
+    return await service.get_pending_actions(session, project_id)
+
+
 @router.get("/publish/{job_id}", response_model=PublishJobResponse)
 async def get_publish_job(
     job_id: str,

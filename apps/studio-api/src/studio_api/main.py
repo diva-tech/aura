@@ -18,6 +18,12 @@ from studio_api.models.analysis import (  # noqa: F401
     Transcript,
     VideoMetrics,
 )
+from studio_api.models.copilot import (  # noqa: F401
+    CopilotChat,
+    CopilotMemory,
+    CopilotRecommendation,
+    CopilotAction,
+)
 
 
 @asynccontextmanager
