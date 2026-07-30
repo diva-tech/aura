@@ -27,6 +27,7 @@ from studio_api.services.analysis_service import AnalysisService
 from studio_api.services.edit_plan_service import EditPlanService
 from studio_api.services.preview_service import PreviewService
 from studio_api.services.render_service import RenderService
+from studio_api.services.publish_service import PublishService
 from studio_api.storage import StorageService
 from studio_api.schemas.edit_plan import (
     EditPlanResponse,
@@ -51,6 +52,14 @@ from studio_api.schemas.render import (
     StartRenderRequest,
     RenderCancelRequest,
     RenderRetryRequest,
+)
+from studio_api.schemas.publish import (
+    PublishJobResponse,
+    PlatformAccountResponse,
+    PublishRequest,
+    ConnectPlatformRequest,
+    PublishRetryRequest,
+    PlatformHealthResponse,
 )
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -787,6 +796,168 @@ async def get_render_logs(
             }
             for log in logs
         ]
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+# Publish endpoints
+@router.post("/publish", response_model=PublishJobResponse, status_code=status.HTTP_201_CREATED)
+async def create_publish_job(
+    data: PublishRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Create a publish job for a rendered video."""
+    try:
+        service = PublishService(session)
+        job = await service.create_publish_job(
+            data.render_id,
+            data.platform_account_id.split("_")[0],  # Extract project_id
+            data.platform_account_id,
+            data.platform,
+            data.title,
+            data.description,
+            data.tags,
+            data.caption,
+            data.hashtags,
+            data.scheduled_time,
+        )
+        return job
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/publish/history", response_model=list[PublishJobResponse])
+async def list_publish_jobs(
+    project_id: Optional[str] = None,
+    status: Optional[str] = None,
+    session: AsyncSession = Depends(get_session),
+):
+    """List publish jobs."""
+    try:
+        service = PublishService(session)
+        jobs = await service.list_publish_jobs(project_id, status)
+        return jobs
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/publish/{job_id}", response_model=PublishJobResponse)
+async def get_publish_job(
+    job_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get publish job details."""
+    try:
+        service = PublishService(session)
+        job = await service.get_publish_job(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Publish job not found"
+            )
+        return job
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/publish/{job_id}/retry", response_model=PublishJobResponse)
+async def retry_publish_job(
+    job_id: str,
+    data: PublishRetryRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Retry a failed publish job."""
+    try:
+        service = PublishService(session)
+        job = await service.retry_publish(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Publish job not found or not in failed state",
+            )
+        return job
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.delete("/publish/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_publish_job(
+    job_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Cancel a publish job."""
+    try:
+        service = PublishService(session)
+        job = await service.cancel_publish(job_id)
+        if not job:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Publish job not found"
+            )
+        return None
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/platforms/connect", response_model=PlatformAccountResponse)
+async def connect_platform_account(
+    user_id: str,
+    data: ConnectPlatformRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Connect a platform account via OAuth."""
+    try:
+        service = PublishService(session)
+        account = await service.connect_account(
+            user_id,
+            data.platform,
+            data.auth_code,
+            f"{data.platform}_account",
+            f"{data.platform}_id_{user_id}",
+        )
+        return account
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/platforms/accounts", response_model=list[PlatformAccountResponse])
+async def get_platform_accounts(
+    user_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get all connected platform accounts for user."""
+    try:
+        service = PublishService(session)
+        accounts = await service.get_platform_accounts(user_id)
+        return accounts
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/platforms/health/{platform}", response_model=PlatformHealthResponse)
+async def check_platform_health(
+    platform: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Check platform API health status."""
+    try:
+        service = PublishService(session)
+        health = await service.check_platform_health(platform)
+        return health
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
