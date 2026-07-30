@@ -26,6 +26,7 @@ from studio_api.services import ProjectService, VideoService
 from studio_api.services.analysis_service import AnalysisService
 from studio_api.services.edit_plan_service import EditPlanService
 from studio_api.services.preview_service import PreviewService
+from studio_api.services.render_service import RenderService
 from studio_api.storage import StorageService
 from studio_api.schemas.edit_plan import (
     EditPlanResponse,
@@ -43,6 +44,13 @@ from studio_api.schemas.preview import (
     PreviewSettingsUpdateRequest,
     ApprovePreviewRequest,
     PreviewCommentRequest,
+)
+from studio_api.schemas.render import (
+    RenderResponse,
+    RenderDetailResponse,
+    StartRenderRequest,
+    RenderCancelRequest,
+    RenderRetryRequest,
 )
 
 router = APIRouter(prefix="/api", tags=["api"])
@@ -618,6 +626,167 @@ async def add_preview_comment(
             preview_id, data.timestamp, data.text, data.author
         )
         return {"status": "created", "comment_id": comment.id if comment else None}
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+# Render endpoints
+@router.post(
+    "/projects/{project_id}/render",
+    response_model=RenderResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def start_render(
+    project_id: str,
+    data: StartRenderRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Start rendering an approved preview."""
+    try:
+        # Verify project exists
+        project_service = ProjectService(session)
+        project = await project_service.get_project(project_id)
+        if not project:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+            )
+
+        # Get latest preview
+        preview_service = PreviewService(session)
+        preview = await preview_service.get_project_preview(project_id)
+        if not preview:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No preview found"
+            )
+
+        if not preview.approved:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Preview must be approved before rendering",
+            )
+
+        # Get edit plan
+        edit_plan_service = EditPlanService(session)
+        edit_plan = await edit_plan_service.get_project_edit_plan(project_id)
+        if not edit_plan:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No edit plan found"
+            )
+
+        # Start render via M12 Rendering Engine
+        service = RenderService(session)
+        render = await service.start_render(
+            project_id, preview.id, edit_plan.id, data.quality, data.platform, data.priority
+        )
+        return render
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/renders", response_model=list[RenderResponse])
+async def list_renders(
+    project_id: Optional[str] = None,
+    status: Optional[str] = None,
+    session: AsyncSession = Depends(get_session),
+):
+    """List renders."""
+    try:
+        service = RenderService(session)
+        renders = await service.list_renders(project_id, status)
+        return renders
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/renders/{render_id}", response_model=RenderResponse)
+async def get_render(
+    render_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get render details."""
+    try:
+        service = RenderService(session)
+        render = await service.get_render(render_id)
+        if not render:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Render not found"
+            )
+        return render
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/renders/{render_id}/cancel", response_model=RenderResponse)
+async def cancel_render(
+    render_id: str,
+    data: RenderCancelRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Cancel a render job."""
+    try:
+        service = RenderService(session)
+        render = await service.cancel_render(render_id)
+        if not render:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="Render not found"
+            )
+        return render
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.post("/renders/{render_id}/retry", response_model=RenderResponse)
+async def retry_render(
+    render_id: str,
+    data: RenderRetryRequest,
+    session: AsyncSession = Depends(get_session),
+):
+    """Retry a failed render."""
+    try:
+        service = RenderService(session)
+        render = await service.retry_render(render_id)
+        if not render:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Render not found or not in failed state",
+            )
+        return render
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
+        )
+
+
+@router.get("/renders/{render_id}/logs")
+async def get_render_logs(
+    render_id: str,
+    session: AsyncSession = Depends(get_session),
+):
+    """Get render progress logs."""
+    try:
+        service = RenderService(session)
+        logs = await service.get_render_logs(render_id)
+        return [
+            {
+                "id": log.id,
+                "stage": log.stage,
+                "status": log.status,
+                "message": log.message,
+                "progress": log.progress_percent,
+                "timestamp": log.timestamp,
+            }
+            for log in logs
+        ]
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e)
