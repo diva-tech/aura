@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=75.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aura-studio-api"
+version = "1.0.0"
+description = "AURA Studio API - Project workspace and video management"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115.0",
+  "uvicorn[standard]>=0.34.0",
+  "sqlalchemy>=2.0.36",
+  "asyncpg>=0.30.0",
+  "pydantic>=2.7.0",
+  "pydantic-settings>=2.7.0",
+  "python-multipart>=0.0.6",
+  "aiofiles>=24.1.0",
+  "pillow>=11.0.0",
+  "python-dotenv>=1.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.4",
+  "pytest-asyncio>=0.25.0",
+  "httpx>=0.28.1",
+  "black>=24.10.0",
+  "ruff>=0.8.4",
+  "mypy>=1.14.0"
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

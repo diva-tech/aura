@@ -1,0 +1,339 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Core palette */
+  --background: 10 14% 4%;
+  --foreground: 210 40% 98%;
+  --card: 224 26% 12%;
+  --border: 220 24% 21%;
+
+  /* Brand colors */
+  --primary: 192 100% 50%;
+  --primary-light: 186 100% 69%;
+  --primary-dark: 198 89% 48%;
+
+  --accent: 267 100% 64%;
+  --accent-light: 280 100% 70%;
+  --accent-dark: 254 89% 58%;
+
+  /* Status colors */
+  --success: 142 76% 36%;
+  --warning: 38 92% 50%;
+  --error: 0 84% 60%;
+
+  /* Semantic */
+  --muted: 218 15% 57%;
+  --ghost: 210 50% 50%;
+}
+
+* {
+  box-sizing: border-box;
+  border-color: hsl(var(--border));
+  @apply transition-colors duration-200;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at 14% 16%, rgba(34, 211, 238, 0.15), transparent 28%),
+    radial-gradient(circle at 86% 12%, rgba(129, 140, 248, 0.15), transparent 24%),
+    radial-gradient(circle at 50% 84%, rgba(14, 165, 233, 0.08), transparent 30%),
+    linear-gradient(180deg, #0a0e11 0%, #0f1419 45%, #08090d 100%);
+  color: hsl(var(--foreground));
+  font-family: "Inter", system-ui, sans-serif;
+  font-weight: 400;
+  text-rendering: optimizeLegibility;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+#root {
+  isolation: isolate;
+  -webkit-app-region: no-drag;
+  user-select: auto;
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+  color: hsl(var(--foreground));
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.25);
+  background-clip: padding-box;
+  transition: background 200ms;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.4);
+  background-clip: padding-box;
+}
+
+/* Animations */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes blur-in {
+  from {
+    opacity: 0;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes glow {
+  0%, 100% {
+    opacity: 0.5;
+    filter: drop-shadow(0 0 8px rgba(34, 211, 238, 0.3));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 16px rgba(34, 211, 238, 0.6));
+  }
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+@layer base {
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-['Space_Grotesk'] font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply bg-white/[0.05] backdrop-blur-xl border border-white/10;
+  }
+
+  .glass-dark {
+    @apply bg-black/20 backdrop-blur-2xl border border-white/5;
+  }
+
+  .glass-sm {
+    @apply rounded-2xl;
+  }
+
+  .glass-md {
+    @apply rounded-3xl;
+  }
+
+  .glass-lg {
+    @apply rounded-[40px];
+  }
+
+  .glow-primary {
+    @apply shadow-[0_0_30px_rgba(34,211,238,0.15)];
+  }
+
+  .glow-accent {
+    @apply shadow-[0_0_30px_rgba(129,140,248,0.15)];
+  }
+
+  .glow-sm {
+    @apply shadow-[0_0_15px_rgba(34,211,238,0.1)];
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent;
+  }
+
+  .gradient-text-alt {
+    @apply bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent;
+  }
+
+  .interactive-element {
+    @apply transition-all duration-200 ease-out;
+  }
+
+  .interactive-element:hover {
+    @apply -translate-y-0.5;
+  }
+
+  .interactive-element:active {
+    @apply -translate-y-1;
+  }
+}
+
+@layer utilities {
+  /* Animations */
+  .animate-fade-up {
+    animation: fade-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-fade-in {
+    animation: fade-in 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-blur-in {
+    animation: blur-in 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-right {
+    animation: slide-in-right 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-slide-in-left {
+    animation: slide-in-left 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .animate-float {
+    animation: float 8s ease-in-out infinite;
+  }
+
+  .animate-glow {
+    animation: glow 3s ease-in-out infinite;
+  }
+
+  .animate-pulse-ring {
+    animation: pulse-ring 2s ease-out infinite;
+  }
+
+  .animate-shimmer {
+    animation: shimmer 2s infinite;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.1),
+      transparent
+    );
+    background-size: 1000px 100%;
+  }
+
+  /* Grid background */
+  .glass-grid {
+    background-image:
+      linear-gradient(rgba(148, 163, 184, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 163, 184, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+
+  /* Utility classes */
+  .backdrop-blur-xs {
+    backdrop-filter: blur(2px);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Focus states */
+  .focus-visible-ring {
+    @apply outline-none ring-2 ring-offset-2 ring-offset-background ring-primary;
+  }
+}

@@ -1,0 +1,10 @@
+# Development override - runs backend without desktop build
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+version: "3.8"
+
+services:
+  # Remove desktop service from being built
+  desktop:
+    profiles:
+      - disabled
